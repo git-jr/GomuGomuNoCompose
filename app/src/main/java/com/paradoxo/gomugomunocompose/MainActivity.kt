@@ -1,21 +1,32 @@
 package com.paradoxo.gomugomunocompose
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.Animatable
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.with
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.forEachGesture
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -31,6 +42,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.input.pointer.PointerEvent
@@ -38,22 +51,100 @@ import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import com.paradoxo.gomugomunocompose.ui.theme.GomuGomuNoComposeTheme
+import com.paradoxo.gomugomunocompose.ui.theme.vinaSansFamily
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
         setContent {
             GomuGomuNoComposeTheme {
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    GomuGomuScreen()
+                    var currentGear by remember { mutableStateOf(1) }
+                    val firstGear = 1
+                    val lastGear = 5
+
+                    val backgroundColor = remember { Animatable(Color.Transparent) }
+
+                    val backgroundLinearGradient = Brush.linearGradient(
+                        listOf(Color(0xFF250054), backgroundColor.value),
+                    )
+
+                    when (currentGear) {
+                        1 -> {
+                            LaunchedEffect(Unit) {
+                                backgroundColor.animateTo(
+                                    Color.Red, animationSpec = tween(500),
+                                )
+                            }
+                        }
+
+                        2 -> {
+                            LaunchedEffect(Unit) {
+                                backgroundColor.animateTo(
+                                    Color.Blue, animationSpec = tween(500)
+                                )
+                            }
+                        }
+
+                        3 -> {
+                            LaunchedEffect(Unit) {
+                                backgroundColor.animateTo(Color.Green, animationSpec = tween(500))
+                            }
+                        }
+
+                        4 -> {
+                            LaunchedEffect(Unit) {
+                                backgroundColor.animateTo(Color.Yellow, animationSpec = tween(500))
+                            }
+                        }
+
+                        5 -> {
+                            LaunchedEffect(Unit) {
+                                backgroundColor.animateTo(Color.Black, animationSpec = tween(500))
+                            }
+                        }
+
+                        else -> Brush.linearGradient(
+                            listOf(Color(0xFFFF8000), Color(0xFF3F51B5)),
+                        )
+                    }
+
+                    Box(
+                        Modifier
+                            .background(backgroundLinearGradient, alpha = 0.5f)
+                            .padding(top = 50.dp)
+                            .fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+
+                        AnimateIncrementDecrementGear(
+                            count = currentGear
+                        )
+
+                        GomuGomuScreen(
+                            onChangeGear = {
+                                currentGear = if (currentGear == lastGear) {
+                                    firstGear
+                                } else {
+                                    currentGear + 1
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -61,43 +152,71 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun GomuGomuScreen() {
+fun GomuGomuScreen(
+    onChangeGear: () -> Unit
+) {
 
     var imageSize by remember { mutableStateOf(72.dp) }
     var currentGear by remember { mutableStateOf(0) }
     val offsetY = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(offsetY.value) {
-        Log.i("GomuGomuNoCompose", "offsetY.isRunning ${offsetY.isRunning}")
+//    var passOne by remember { mutableStateOf(0) }
 
-        if (offsetY.value.roundToInt() == 0 && !offsetY.isRunning) {
+    val currentFruitPosition = offsetY.value.roundToInt()
+
+    var listLastTwentyValues by remember { mutableStateOf(listOf<Int>()) }
+
+    LaunchedEffect(offsetY.value) {
+
+        if (currentFruitPosition in 900..950 && !listLastTwentyValues.contains(currentFruitPosition)) {
+            onChangeGear()
+        }
+        listLastTwentyValues = if (listLastTwentyValues.size == 20) {
+            listOf()
+        } else {
+            listLastTwentyValues + currentFruitPosition
+        }
+
+
+        /* Working also, but not good as listLastTwentyValues
+        if (roundToInt in 900..950) {
+            if (passOne == 2) {
+                onChangeGear()
+                passOne = 0
+            } else {
+                passOne += 1
+            }
+        }
+        */
+
+        if (currentFruitPosition == 0 && !offsetY.isRunning) {
             currentGear += 1
         }
 
-        if (offsetY.value.roundToInt() in 73..900) {
-            if ((offsetY.value.roundToInt().dp / 2) > 72.dp) {
-                imageSize = offsetY.value.roundToInt().dp / 2
+        if (currentFruitPosition in 73..1500) {
+            if ((currentFruitPosition.dp / 2) > 72.dp) {
+                imageSize = currentFruitPosition.dp / 2
             }
         }
     }
 
     val colorList =
         listOf(
-            Color(0xFF250054),
-            Color(0xFFE91E63),
-            Color(0xFF9C27B0),
-            Color(0xFF3F51B5),
-            Color(0xFFFF9800),
+            Color(0xFF250054), // Normal
+            Color(0xFF900606), // Gear 2
+            Color(0xFFD49518),// Gear 3
+            Color(0xFF300101), // Gear 4
+            Color(0xFFA2A2A3), // Gear 5
         )
 
     val fruitColor = when (offsetY.value) {
-        in -100f..1f -> colorList[0]
-        in 1f..100f -> colorList[1]
-        in 100f..400f -> colorList[2]
-        in 400f..700f -> colorList[3]
-        in 700f..1000f -> colorList[4]
-        else -> colorList[4]
+        in -100f..90f -> colorList[0] // Normal
+        in 91f..300f -> colorList[1] // Gear 2
+        in 301f..550f -> colorList[2] // Gear 3
+        in 551f..850f -> colorList[3]  // Gear 4
+        in 851f..2000f -> colorList[4]  // Gear 5
+        else -> colorList[0]
 
     }
 
@@ -105,24 +224,24 @@ fun GomuGomuScreen() {
         targetValue = fruitColor,
         label = "",
         animationSpec = tween(
-            durationMillis = 20,
+            durationMillis = 500,
         )
     )
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(20.dp),
+            .padding(top = 20.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("Current Gear: $currentGear")
-        Text(text = "Offset: ${offsetY.value.roundToInt()}")
+        Text(text = "Offset: $currentFruitPosition velelocity: ${offsetY.velocity}")
 
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(20.dp),
+                .fillMaxSize(),
+//                .padding(20.dp),
             contentAlignment = Alignment.TopCenter
         ) {
             Image(
@@ -131,7 +250,7 @@ fun GomuGomuScreen() {
                 colorFilter = ColorFilter.lighting(Color.White, color),
                 modifier = Modifier
                     .size(imageSize)
-                    .offset { IntOffset(0, offsetY.value.roundToInt()) }
+                    .offset { IntOffset(0, currentFruitPosition) }
                     .pointerInput(Unit) {
                         forEachGesture {
                             awaitPointerEventScope {
@@ -167,5 +286,49 @@ fun GomuGomuScreen() {
         }
 
 
+    }
+}
+
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+private fun AnimateIncrementDecrementGear(
+    count: Int
+) {
+    val durationMillis = 200
+
+    Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        AnimatedContent(
+            targetState = count,
+            transitionSpec = {
+                if (targetState > initialState) {
+                    slideInVertically(
+                        animationSpec = tween(durationMillis),
+                        initialOffsetY = { it }
+                    ) + fadeIn(tween(durationMillis)) with
+                            slideOutVertically(
+                                targetOffsetY = { -it }
+                            ) + fadeOut(tween(durationMillis))
+                } else {
+                    slideInVertically(
+                        animationSpec = tween(durationMillis),
+                        initialOffsetY = { -it }
+                    ) + fadeIn() with slideOutVertically(
+                        animationSpec = tween(durationMillis),
+                        targetOffsetY = { it }) + fadeOut(tween(durationMillis))
+                }.using(SizeTransform(clip = false))
+            },
+            label = ""
+        ) { countGear ->
+            Text(
+                text = "$countGear", fontSize = 200.sp,
+                fontFamily = vinaSansFamily,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .alpha(0.5f)
+                    .fillMaxWidth()
+                    .padding(20.dp)
+            )
+        }
+        Spacer(Modifier.size(20.dp))
     }
 }
