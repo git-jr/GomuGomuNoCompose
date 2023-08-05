@@ -5,10 +5,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.Animatable
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -18,9 +21,9 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.with
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.forEachGesture
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,6 +53,7 @@ import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
@@ -58,6 +62,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import com.paradoxo.gomugomunocompose.ui.theme.GomuGomuNoComposeTheme
 import com.paradoxo.gomugomunocompose.ui.theme.vinaSansFamily
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -74,8 +79,25 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     var currentGear by remember { mutableStateOf(1) }
+                    val activationGear = 5
                     val firstGear = 1
                     val lastGear = 5
+
+                    // to make image blink
+                    var imageAlphaDuration by remember { mutableStateOf(8000) }
+                    var pulsar by remember { mutableStateOf(true) }
+                    val imageAlpha by remember { mutableStateOf(1.0f) }
+
+                    LaunchedEffect(currentGear == activationGear) {
+                        while (true) {
+                            if (imageAlphaDuration != 1000) {
+                                imageAlphaDuration -= 500
+                            }
+
+                            pulsar = !pulsar
+                            delay(1000)
+                        }
+                    }
 
                     val backgroundColor = remember { Animatable(Color.Transparent) }
 
@@ -125,25 +147,65 @@ class MainActivity : ComponentActivity() {
 
                     Box(
                         Modifier
-                            .background(backgroundLinearGradient, alpha = 0.5f)
-                            .padding(top = 50.dp)
+//                            .background(backgroundLinearGradient, alpha = 0.5f)
                             .fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
 
-                        AnimateIncrementDecrementGear(
-                            count = currentGear
-                        )
+                        AnimatedVisibility(
+                            visible = (currentGear == activationGear) && pulsar,
+                            enter = fadeIn(
+                                tween(
+                                    durationMillis = 500,
+                                    easing = FastOutSlowInEasing
+                                )
+                            ),
+                            exit = fadeOut(
+                                tween(
+                                    durationMillis = imageAlphaDuration,
+                                    easing = LinearOutSlowInEasing
+                                )
+                            )
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.wallpaper_luffy_moon),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxSize(),
+                                alpha = imageAlpha
+                            )
+                        }
 
-                        GomuGomuScreen(
-                            onChangeGear = {
-                                currentGear = if (currentGear == lastGear) {
-                                    firstGear
-                                } else {
-                                    currentGear + 1
+
+                        Box(
+                            Modifier
+//                            .background(backgroundLinearGradient, alpha = 0.5f)
+                                .padding(top = 50.dp)
+                                .fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            AnimateIncrementDecrementGear(
+                                count = currentGear,
+                                onChangeGear = {
+                                    currentGear = if (currentGear == lastGear) {
+                                        firstGear
+                                    } else {
+                                        currentGear + 1
+                                    }
                                 }
-                            }
-                        )
+                            )
+
+                            GomuGomuScreen(
+                                onChangeGear = {
+                                    currentGear = if (currentGear == lastGear) {
+                                        firstGear
+                                    } else {
+                                        currentGear + 1
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -161,8 +223,6 @@ fun GomuGomuScreen(
     val offsetY = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
 
-//    var passOne by remember { mutableStateOf(0) }
-
     val currentFruitPosition = offsetY.value.roundToInt()
 
     var listLastTwentyValues by remember { mutableStateOf(listOf<Int>()) }
@@ -177,18 +237,6 @@ fun GomuGomuScreen(
         } else {
             listLastTwentyValues + currentFruitPosition
         }
-
-
-        /* Working also, but not good as listLastTwentyValues
-        if (roundToInt in 900..950) {
-            if (passOne == 2) {
-                onChangeGear()
-                passOne = 0
-            } else {
-                passOne += 1
-            }
-        }
-        */
 
         if (currentFruitPosition == 0 && !offsetY.isRunning) {
             currentGear += 1
@@ -235,64 +283,63 @@ fun GomuGomuScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Current Gear: $currentGear")
+        Text("Testando animações: $currentGear")
         Text(text = "Offset: $currentFruitPosition velelocity: ${offsetY.velocity}")
+
 
         Box(
             modifier = Modifier
                 .fillMaxSize(),
-//                .padding(20.dp),
             contentAlignment = Alignment.TopCenter
         ) {
             Image(
-                painter = painterResource(id = R.drawable.ic_gomu_gomu_color),
+                painter = painterResource(id = R.drawable.ic_gomu_gomu_color_2),
                 contentDescription = null,
                 colorFilter = ColorFilter.lighting(Color.White, color),
                 modifier = Modifier
                     .size(imageSize)
                     .offset { IntOffset(0, currentFruitPosition) }
                     .pointerInput(Unit) {
-                        forEachGesture {
-                            awaitPointerEventScope {
-                                //Detect a touch down event
-                                awaitFirstDown()
-                                do {
-                                    val event: PointerEvent = awaitPointerEvent()
-                                    event.changes.forEach { pointerInputChange: PointerInputChange ->
-                                        //Consume the change
-                                        scope.launch {
-                                            offsetY.snapTo(
-                                                offsetY.value + pointerInputChange.positionChange().y
-                                            )
-                                        }
-                                    }
-                                } while (event.changes.any { it.pressed })
-
-                                // Touch released - Action_UP
-                                scope.launch {
-                                    offsetY.animateTo(
-                                        targetValue = 0f, spring(
-//                                        dampingRatio = Spring.DampingRatioLowBouncy,
-                                            dampingRatio = Spring.DampingRatioHighBouncy,
-                                            stiffness = Spring.StiffnessLow
-
+                        //Detect a touch down event
+                        awaitEachGesture {
+                            do {
+                                val event: PointerEvent = awaitPointerEvent()
+                                event.changes.forEach { pointerInputChange: PointerInputChange ->
+                                    //Consume the change
+                                    scope.launch {
+                                        offsetY.snapTo(
+                                            offsetY.value + pointerInputChange.positionChange().y
                                         )
-                                    )
+                                    }
                                 }
+                            } while (event.changes.any { it.pressed })
+
+                            // Touch released - Action_UP
+                            scope.launch {
+                                offsetY.animateTo(
+                                    targetValue = 0f, spring(
+//                                        dampingRatio = Spring.DampingRatioLowBouncy,
+                                        dampingRatio = Spring.DampingRatioHighBouncy,
+                                        stiffness = Spring.StiffnessLow
+
+                                    )
+                                )
                             }
                         }
+
                     }
             )
         }
 
-
     }
 }
+
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 private fun AnimateIncrementDecrementGear(
-    count: Int
+    count: Int,
+    onChangeGear: () -> Unit
 ) {
     val durationMillis = 200
 
@@ -327,6 +374,10 @@ private fun AnimateIncrementDecrementGear(
                     .alpha(0.5f)
                     .fillMaxWidth()
                     .padding(20.dp)
+                    .clickable(
+                        indication = null,
+                        interactionSource = MutableInteractionSource()
+                    ) { onChangeGear() }
             )
         }
         Spacer(Modifier.size(20.dp))
