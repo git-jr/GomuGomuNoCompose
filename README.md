@@ -1,10 +1,13 @@
 
-![gomu_gomu_no_gompose_github_banner](https://github.com/git-jr/GomuGomuNoCompose/assets/35709152/a91352bc-9824-47fe-be2f-fc3ec427c603)
+
+![gomu_gomu_no_gompose_github_banner](https://github.com/git-jr/GomuGomuNoCompose/assets/35709152/10692d7a-0789-4aba-9a42-d1f1a2e58a3d)
 
 Playing with animations and gestures in Jetpack Compose and leaving a tribute to Luffy's Gear 5 on this special day for One Piece fans.
 
 
-https://github.com/git-jr/GomuGomuNoCompose/assets/35709152/20af5dfb-ec69-4b81-991f-adc837567798
+
+https://github.com/git-jr/GomuGomuNoCompose/assets/35709152/8d1db2e2-3967-4e6b-98ef-67df9c431f46
+
 
 Test app on [releases](https://github.com/git-jr/GomuGomuNoCompose/releases)
 
