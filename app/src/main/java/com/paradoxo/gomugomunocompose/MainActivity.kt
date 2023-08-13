@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import com.paradoxo.gomugomunocompose.ui.theme.GomuGomuNoComposeTheme
 import com.paradoxo.gomugomunocompose.ui.theme.vinaSansFamily
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -224,10 +225,25 @@ fun GomuGomuScreen(
     // Detect when the fruit was moved and changer your properties
     val currentFruitPosition = offsetY.value.roundToInt()
     var listLastTwentyValues by remember { mutableStateOf(listOf<Int>()) }
+
+    // Apply a delay to avoid multiple calls
+    // Tutorial by O brabo: https://dev.to/alexfelipe/implementando-debounce-no-kotlin-com-coroutines-4mk8
+    var job: Job = Job()
+
     LaunchedEffect(offsetY.value) {
-        if (currentFruitPosition in 900..950 && !listLastTwentyValues.contains(currentFruitPosition)) {
-            onChangeGear()
+        job.cancel()
+        job = scope.launch {
+            delay(500)
+            if (currentFruitPosition in 900..950 && !listLastTwentyValues.contains(
+                    currentFruitPosition
+                )
+            ) {
+                onChangeGear()
+            }
         }
+    }
+
+    LaunchedEffect(offsetY.value) {
         listLastTwentyValues = if (listLastTwentyValues.size == 20) {
             listOf()
         } else {
